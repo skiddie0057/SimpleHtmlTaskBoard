@@ -1,0 +1,42 @@
+{
+  "todo": [
+    {
+      "id": "task-1773137582563-0",
+      "title": "Enemy Hit Sound",
+      "description": "Add sound when enemy is hit so that we know he is hit",
+      "priority": "medium",
+      "column": "todo"
+    },
+    {
+      "id": "task-1773137620278-1",
+      "title": "Player Hit Sound",
+      "description": "Add a sound when the player is hit so we know he is hit\n\nWill also help us know when bugs are happening",
+      "priority": "medium",
+      "column": "todo"
+    },
+    {
+      "id": "task-1773137683153-2",
+      "title": "Enemy HealthBar",
+      "description": "Add enemy health bar FOR NOW\n\nLater it will be replaced maybe with bloody enemy face/body instead",
+      "priority": "medium",
+      "column": "todo"
+    },
+    {
+      "id": "task-1773137700161-3",
+      "title": "Sword Slash Animation",
+      "description": "Add a sword slash animation for player",
+      "priority": "medium",
+      "column": "todo"
+    },
+    {
+      "id": "task-1773137721712-4",
+      "title": "Study more GridMap",
+      "description": "Study how GridMap works",
+      "priority": "medium",
+      "column": "todo"
+    }
+  ],
+  "in-progress": [],
+  "review": [],
+  "done": []
+}

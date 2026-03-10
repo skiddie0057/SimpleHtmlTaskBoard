@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Task Board</title> 
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Work+Sans:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e14;
+            --bg-secondary: #13171e;
+            --bg-card: #1a1f29;
+            --accent-blue: #00d9ff;
+            --accent-purple: #a277ff;
+            --accent-green: #39e991;
+            --accent-orange: #ffaa5a;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --border-color: #30363d;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        body {
+            font-family: 'Work Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(0, 217, 255, 0.05) 0%, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(162, 119, 255, 0.05) 0%, transparent 50%);
+            overflow-x: hidden;
+        }
+
+        .header {
+            padding: 2rem 3rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .header-content {
+            max-width: 1800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            animation: fadeIn 0.8s ease-out 0.3s backwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        button {
+            font-family: 'JetBrains Mono', monospace;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        button span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 217, 255, 0.3);
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 217, 255, 0.4);
+        }
+
+        .btn-load {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-load:hover {
+            border-color: var(--accent-green);
+            transform: translateY(-2px);
+        }
+
+        .board {
+            padding: 3rem;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .columns {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            animation: fadeIn 1s ease-out 0.5s backwards;
+        }
+
+        .column {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            min-height: 500px;
+            transition: all 0.3s ease;
+        }
+
+        .column.drag-over {
+            background: rgba(0, 217, 255, 0.05);
+            border-color: var(--accent-blue);
+            transform: scale(1.02);
+        }
+
+        .column-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .column-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .column-badge {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.2);
+            }
+        }
+
+        .column:nth-child(1) .column-badge {
+            background: var(--accent-orange);
+        }
+
+        .column:nth-child(2) .column-badge {
+            background: var(--accent-blue);
+        }
+
+        .column:nth-child(3) .column-badge {
+            background: var(--accent-purple);
+        }
+
+        .column:nth-child(4) .column-badge {
+            background: var(--accent-green);
+        }
+
+        .task-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            background: var(--bg-card);
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+        }
+
+        .tasks {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-height: 100px;
+        }
+
+        .task {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            cursor: grab;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: taskSlideIn 0.4s ease-out backwards;
+        }
+
+        @keyframes taskSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .task:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow);
+        }
+
+        .task.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+            transform: rotate(2deg) scale(1.05);
+        }
+
+        .task-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+            color: var(--text-primary);
+        }
+
+        .task-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 0.75rem;
+        }
+
+        .task-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .task-priority {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .priority-high {
+            background: rgba(255, 82, 82, 0.2);
+            color: #ff5252;
+        }
+
+        .priority-medium {
+            background: rgba(255, 170, 90, 0.2);
+            color: var(--accent-orange);
+        }
+
+        .priority-low {
+            background: rgba(57, 233, 145, 0.2);
+            color: var(--accent-green);
+        }
+
+        .task-delete {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+
+        .task-delete:hover {
+            color: #ff5252;
+            background: rgba(255, 82, 82, 0.1);
+        }
+
+        .add-task-btn {
+            width: 100%;
+            padding: 1rem;
+            background: var(--bg-card);
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 1rem;
+        }
+
+        .add-task-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: var(--shadow);
+            animation: modalSlideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes modalSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal h2 {
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 1.5rem;
+            color: var(--accent-blue);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'Work Sans', sans-serif;
+            font-size: 0.875rem;
+            transition: all 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        .btn-cancel {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-cancel:hover {
+            border-color: #ff5252;
+            color: #ff5252;
+        }
+
+        .notification {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            box-shadow: var(--shadow);
+            z-index: 2000;
+            animation: slideInRight 0.4s ease-out;
+            display: none;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification.show {
+            display: block;
+        }
+
+        .notification.success {
+            border-color: var(--accent-green);
+        }
+
+        .notification.error {
+            border-color: #ff5252;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        #fileInput {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>⚡ TaskFlow</h1>
+            <div class="controls">
+                <button class="btn-load" onClick="window.location.href=window.location.href">+ New</button>
+                <button class="btn-load"  onclick="saveToFile()">
+                    <span>💾 Save Board</span>
+                </button>
+                <div class="file-input-wrapper">
+                    <button class="btn-load" onclick="document.getElementById('fileInput').click()">
+                        <span>📁 Load Board</span>
+                    </button>
+                    <input type="file" id="fileInput" accept=".json" onchange="loadFromFile(event)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="board">
+        <div class="columns">
+            <div class="column" data-column="todo">
+                <div class="column-header">
+                    <div class="column-title">
+                        <span class="column-badge"></span>
+                        To Do
+                    </div>
+                    <span class="task-count">0</span>
+                    <button class="btn-load" onclick="openAddTaskModal('todo')">+</button>
+                </div>
+                <div class="tasks" id="todo-tasks"></div>
+                <button class="add-task-btn" onclick="openAddTaskModal('todo')">+ Add Task</button>
+            </div>
+
+            <div class="column" data-column="in-progress">
+                <div class="column-header">
+                    <div class="column-title">
+                        <span class="column-badge"></span>
+                        In Progress
+                    </div>
+                    <span class="task-count">0</span>
+                    <button class="btn-load" onclick="openAddTaskModal('in-progress')">+</button>
+                </div>
+                <div class="tasks" id="in-progress-tasks"></div>
+                <button class="add-task-btn" onclick="openAddTaskModal('in-progress')">+ Add Task</button>
+            </div>
+
+            <div class="column" data-column="review">
+                <div class="column-header">
+                    <div class="column-title">
+                        <span class="column-badge"></span>
+                        Review
+                    </div>
+                    <span class="task-count">0</span>
+                    <button class="btn-load" onclick="openAddTaskModal('review')">+</button>
+                </div>
+                <div class="tasks" id="review-tasks"></div>
+                <button class="add-task-btn" onclick="openAddTaskModal('review')">+ Add Task</button>
+            </div>
+
+            <div class="column" data-column="done">
+                <div class="column-header">
+                    <div class="column-title">
+                        <span class="column-badge"></span>
+                        Done
+                    </div>
+                    <span class="task-count">0</span>
+                    <button class="btn-load" onclick="openAddTaskModal('done')">+</button>
+                </div>
+                <div class="tasks" id="done-tasks"></div>
+                <button class="add-task-btn" onclick="openAddTaskModal('done')">+ Add Task</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <h2>Create New Task</h2>
+            <form id="taskForm" onsubmit="addTask(event)">
+                <div class="form-group">
+                    <label for="taskTitle">Title</label>
+                    <input type="text" id="taskTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="taskDescription">Description</label>
+                    <textarea id="taskDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="taskPriority">Priority</label>
+                    <select id="taskPriority">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn-cancel" onclick="closeModal()">
+                        <span>Cancel</span>
+                    </button>
+                    <button type="submit" class="btn-save">
+                        <span>Create Task</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        var currentColumn = '';
+        var taskIdCounter = 0;
+        var boardData = {
+            todo: [],
+            'in-progress': [],
+            review: [],
+            done: []
+        };
+
+        window.addEventListener('DOMContentLoaded', function() {
+            updateTaskCounts();
+        });
+
+        function openAddTaskModal(column) {
+            currentColumn = column;
+            document.getElementById('taskModal').classList.add('active');
+            document.getElementById('taskForm').reset();
+        }
+
+        function closeModal() {
+            document.getElementById('taskModal').classList.remove('active');
+        }
+
+        function addTask(event) {
+            event.preventDefault();
+            
+            var title = document.getElementById('taskTitle').value;
+            var description = document.getElementById('taskDescription').value;
+            var priority = document.getElementById('taskPriority').value;
+
+            var task = {
+                id: 'task-' + Date.now() + '-' + (taskIdCounter++),
+                title: title,
+                description: description,
+                priority: priority,
+                column: currentColumn
+            };
+
+            boardData[currentColumn].push(task);
+            renderTask(task, currentColumn);
+            updateTaskCounts();
+            closeModal();
+            showNotification('Task created successfully!', 'success');
+        }
+
+        function renderTask(task, column) {
+            var tasksContainer = document.getElementById(column + '-tasks');
+            var taskElement = document.createElement('div');
+            taskElement.className = 'task';
+            taskElement.draggable = true;
+            taskElement.dataset.taskId = task.id;
+
+            taskElement.innerHTML = 
+                '<div class="task-title">' + task.title + '</div>' +
+                '<div class="task-description">' + (task.description || 'No description') + '</div>' +
+                '<div class="task-footer">' +
+                    '<span class="task-priority priority-' + task.priority + '">' + task.priority + '</span>' +
+                    '<button class="task-delete" onclick="deleteTask(\'' + task.id + '\', \'' + column + '\')">×</button>' +
+                '</div>';
+
+            taskElement.addEventListener('dragstart', handleDragStart);
+            taskElement.addEventListener('dragend', handleDragEnd);
+
+            tasksContainer.appendChild(taskElement);
+        }
+
+        function deleteTask(taskId, column) {
+            boardData[column] = boardData[column].filter(function(task) {
+                return task.id !== taskId;
+            });
+            var taskElement = document.querySelector('[data-task-id="' + taskId + '"]');
+            taskElement.style.animation = 'taskSlideIn 0.3s ease-out reverse';
+            setTimeout(function() {
+                taskElement.remove();
+                updateTaskCounts();
+                showNotification('Task deleted', 'success');
+            }, 300);
+        }
+
+        function handleDragStart(e) {
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.dataset.taskId);
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            var columns = document.querySelectorAll('.column');
+            for (var i = 0; i < columns.length; i++) {
+                columns[i].classList.remove('drag-over');
+            }
+        }
+
+        var allColumns = document.querySelectorAll('.column');
+        for (var i = 0; i < allColumns.length; i++) {
+            allColumns[i].addEventListener('dragover', handleDragOver);
+            allColumns[i].addEventListener('drop', handleDrop);
+            allColumns[i].addEventListener('dragleave', handleDragLeave);
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            this.classList.add('drag-over');
+            return false;
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+
+            var taskId = e.dataTransfer.getData('text/html');
+            var taskElement = document.querySelector('[data-task-id="' + taskId + '"]');
+            var newColumn = this.dataset.column;
+            var oldColumn = taskElement.closest('.column').dataset.column;
+
+            if (oldColumn !== newColumn) {
+                var taskIndex = -1;
+                for (var i = 0; i < boardData[oldColumn].length; i++) {
+                    if (boardData[oldColumn][i].id === taskId) {
+                        taskIndex = i;
+                        break;
+                    }
+                }
+                var task = boardData[oldColumn][taskIndex];
+                
+                boardData[oldColumn].splice(taskIndex, 1);
+                
+                task.column = newColumn;
+                boardData[newColumn].push(task);
+
+                var tasksContainer = this.querySelector('.tasks');
+                tasksContainer.appendChild(taskElement);
+
+                updateTaskCounts();
+                showNotification('Task moved!', 'success');
+            }
+
+            this.classList.remove('drag-over');
+            return false;
+        }
+
+        function updateTaskCounts() {
+            var columns = Object.keys(boardData);
+            for (var i = 0; i < columns.length; i++) {
+                var column = columns[i];
+                var count = boardData[column].length;
+                var countElement = document.querySelector('[data-column="' + column + '"] .task-count');
+                if (countElement) {
+                    countElement.textContent = count;
+                }
+            }
+        }
+
+        function saveToFile() {
+            var currentVersion = parseInt(localStorage.getItem('taskBoardVersion') || '0');
+            currentVersion++;
+            
+            var dataStr = JSON.stringify(boardData, null, 2);
+            var blob = new Blob([dataStr], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'Boards/taskboard-' + currentVersion + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            localStorage.setItem('taskBoardVersion', currentVersion.toString());
+            showNotification('Board saved as taskboard-' + currentVersion + '.json!', 'success');
+        }
+
+        function loadFromFile(event) {
+            var file = event.target.files[0];
+            if (!file) return;
+
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    var loadedData = JSON.parse(e.target.result);
+                    boardData = loadedData;
+
+                    var columns = Object.keys(boardData);
+                    for (var i = 0; i < columns.length; i++) {
+                        document.getElementById(columns[i] + '-tasks').innerHTML = '';
+                    }
+
+                    for (var i = 0; i < columns.length; i++) {
+                        var column = columns[i];
+                        var tasks = boardData[column];
+                        for (var j = 0; j < tasks.length; j++) {
+                            renderTask(tasks[j], column);
+                        }
+                    }
+
+                    updateTaskCounts();
+                    
+                    var versionMatch = file.name.match(/taskboard-(\d+)\.json/);
+                    if (versionMatch) {
+                        localStorage.setItem('taskBoardVersion', versionMatch[1]);
+                    }
+                    
+                    showNotification('Loaded ' + file.name + '!', 'success');
+                } catch (error) {
+                    console.error('Load error:', error);
+                    showNotification('Error loading file: Invalid format', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function showNotification(message, type) {
+            var notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = 'notification ' + type + ' show';
+            
+            setTimeout(function() {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        document.getElementById('taskModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
